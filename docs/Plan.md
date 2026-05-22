@@ -1,0 +1,1 @@
+.Keyword Searching: AI can improve keyword searching by employing natural language processing (NLP) algorithms to understand context, identify synonyms, and perform semantic analysis. This helps in retrieving more relevant results and reducing false positives.
