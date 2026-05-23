@@ -11,7 +11,7 @@ from components.FileReader import (
     get_usb_files,
     detectMounts,
     load_tracking_index,
-    purge_uploads_directory,
+    EmptyUploads,
 )
 from components.Search import run_search
 
@@ -471,7 +471,7 @@ def dialog_confirm_purge():
     col_yes, col_no = st.columns(2)
     with col_yes:
         if st.button("Yes, delete all", key="purge_yes", use_container_width=True):
-            count = purge_uploads_directory()
+            count = EmptyUploads()
             st.session_state["ingested_ids"]   = []
             st.session_state["ingest_results"] = []
             st.session_state["source_label"]   = f"Uploads directory emptied — {count} file(s) removed"

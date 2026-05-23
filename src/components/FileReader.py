@@ -297,11 +297,9 @@ def detectMounts() -> list[dict]:
         for base in ("/media", "/mnt"):
             if not os.path.exists(base):
                 continue
-            # /media may have user sub-dirs
             for top in os.listdir(base):
                 top_path = os.path.join(base, top)
                 if os.path.isdir(top_path):
-                    # check one level deeper (/media/<user>/<drive>)
                     sub = os.listdir(top_path)
                     if sub:
                         for s in sub:
@@ -371,19 +369,13 @@ def get_upload_text(file_id: str) -> str:
                 with open(full_path, "r", encoding="utf-8", errors="replace") as f:
                     return f.read()
             break
-    # fallback: direct convention
     txt_path = os.path.join(UPLOADS_DIR, f"{file_id}.txt")
     if not os.path.exists(txt_path):
         return ""
     with open(txt_path, "r", encoding="utf-8", errors="replace") as f:
         return f.read()
 
-def purge_uploads_directory() -> int:
-    """
-    Delete all extracted .txt files and index.json from evidence/uploads/.
-    The uploads folder itself is kept.
-    Returns the number of files deleted.
-    """
+def EmptyUploads() -> int:
     if not os.path.exists(UPLOADS_DIR):
         return 0
     count = 0
