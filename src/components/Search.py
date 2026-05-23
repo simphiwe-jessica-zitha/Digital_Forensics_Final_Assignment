@@ -128,6 +128,9 @@ def run_search(query: str) -> dict:
             "file_count":   0,
             "error":        f"Failed to load evidence: {e}",
         }
+    
+    print("Evidence Json:")
+    print(json.dumps(evidence, indent=4))
 
     # 4. return everything — matching logic added in next stage
     return {
