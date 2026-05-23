@@ -12,7 +12,7 @@ except ImportError:
     _FITZ = False
 
 try:
-    from docx import Document as DocxDocument   
+    from docx import Document as DocxDocument  
     _DOCX = True
 except ImportError:
     _DOCX = False
@@ -34,7 +34,6 @@ TYPE_MAP = {
 }
 
 def _ensure_uploads_dir() -> None:
-    """Create evidence/uploads/ ."""
     os.makedirs(UPLOADS_DIR, exist_ok=True)
 
 
@@ -136,7 +135,6 @@ def _extract_text_from_bytes(data: bytes, ext: str) -> str:
         with tempfile.NamedTemporaryFile(suffix=ext, delete=False) as tmp:
             tmp.write(data)
             tmp_path = tmp.name
-        # file is closed here — safe for any library to open
         return _extract_text(tmp_path, ext)
     finally:
         if tmp_path and os.path.exists(tmp_path):
@@ -157,23 +155,38 @@ def _save_extracted_text(file_id: str, text: str) -> str:
 def _record_exists(index: list[dict], original_name: str, size_kb: float) -> bool:
     for entry in index:
         if entry["original_name"] == original_name and entry["size_kb"] == size_kb:
-            return True
+            txt_path = os.path.join(UPLOADS_DIR, f"{entry['id']}.txt")
+            return os.path.exists(txt_path)
     return False
+
+
+def _remove_stale_entry(index: list, original_name: str, size_kb: float) -> None:
+    to_remove = []
+    for i, entry in enumerate(index):
+        if entry["original_name"] == original_name and entry["size_kb"] == size_kb:
+            txt_path = os.path.join(UPLOADS_DIR, f"{entry['id']}.txt")
+            if not os.path.exists(txt_path):
+                to_remove.append(i)
+    for i in reversed(to_remove):
+        index.pop(i)
 
 
 def _register_file(
     index: list[dict],
+    file_id: str,
     original_name: str,
     file_type: str,
+    original_path: str,
     saved_path: str,
     size_kb: float,
     source: str,
 ) -> dict:
     entry = {
-        "id":            _new_id(),
+        "id":            file_id,
         "original_name": original_name,
         "file_type":     file_type,
         "source":        source,
+        "original_path": original_path,
         "saved_path":    saved_path,
         "size_kb":       size_kb,
         "ingested_at":   datetime.now().isoformat(timespec="seconds"),
@@ -226,10 +239,11 @@ def ingest_sample_files(sample_file_dicts: list) -> list:
         size_kb = f.get("size_kb", round(os.path.getsize(path) / 1024, 1))
         if _record_exists(index, fname, size_kb):
             continue
+        _remove_stale_entry(index, fname, size_kb)
         text       = _extract_text(path, ext)
         file_id    = _new_id()
         saved_path = _save_extracted_text(file_id, text)
-        entry      = _register_file(index, fname, TYPE_MAP.get(ext, "txt"), saved_path, size_kb, source="sample")
+        entry      = _register_file(index, file_id, fname, TYPE_MAP.get(ext, "txt"), path, saved_path, size_kb, "sample")
         results.append(entry)
     _save_index(index)
     return results
@@ -251,14 +265,16 @@ def ingest_uploaded_files(uploaded_files: list) -> list[dict]:
         size_kb  = round(len(data) / 1024, 1)
 
         if _record_exists(index, fname, size_kb):
-            continue  
+            continue
+        _remove_stale_entry(index, fname, size_kb)
 
         text       = _extract_text_from_bytes(data, ext)
         file_id    = _new_id()
         saved_path = _save_extracted_text(file_id, text)
+        original_path = getattr(uf, "name", fname)
         entry      = _register_file(
-            index, fname, TYPE_MAP.get(ext, "txt"),
-            saved_path, size_kb, source="upload",
+            index, file_id, fname, TYPE_MAP.get(ext, "txt"),
+            original_path, saved_path, size_kb, source="upload",
         )
         results.append(entry)
 
@@ -269,7 +285,7 @@ def detectMounts() -> list[dict]:
     system  = platform.system()
     mounts  = []
 
-    if system == "Darwin": 
+    if system == "Darwin":  # macOS
         base = "/Volumes"
         if os.path.exists(base):
             for name in os.listdir(base):
@@ -281,9 +297,11 @@ def detectMounts() -> list[dict]:
         for base in ("/media", "/mnt"):
             if not os.path.exists(base):
                 continue
+            # /media may have user sub-dirs
             for top in os.listdir(base):
                 top_path = os.path.join(base, top)
                 if os.path.isdir(top_path):
+                    # check one level deeper (/media/<user>/<drive>)
                     sub = os.listdir(top_path)
                     if sub:
                         for s in sub:
@@ -325,13 +343,14 @@ def get_usb_files(usb_path: str) -> list[dict]:
 
         if _record_exists(index, fname, size_kb):
             continue
+        _remove_stale_entry(index, fname, size_kb)
 
         text       = _extract_text(file_path, ext)
         file_id    = _new_id()
         saved_path = _save_extracted_text(file_id, text)
         entry      = _register_file(
-            index, fname, TYPE_MAP.get(ext, "txt"),
-            saved_path, size_kb, source="usb",
+            index, file_id, fname, TYPE_MAP.get(ext, "txt"),
+            file_path, saved_path, size_kb, source="usb",
         )
         results.append(entry)
 
@@ -344,14 +363,27 @@ def load_tracking_index() -> list[dict]:
 
 
 def get_upload_text(file_id: str) -> str:
+    index = _load_index()
+    for entry in index:
+        if entry["id"] == file_id:
+            full_path = os.path.join(_PROJECT, entry["saved_path"])
+            if os.path.exists(full_path):
+                with open(full_path, "r", encoding="utf-8", errors="replace") as f:
+                    return f.read()
+            break
+    # fallback: direct convention
     txt_path = os.path.join(UPLOADS_DIR, f"{file_id}.txt")
     if not os.path.exists(txt_path):
         return ""
     with open(txt_path, "r", encoding="utf-8", errors="replace") as f:
         return f.read()
 
-
 def purge_uploads_directory() -> int:
+    """
+    Delete all extracted .txt files and index.json from evidence/uploads/.
+    The uploads folder itself is kept.
+    Returns the number of files deleted.
+    """
     if not os.path.exists(UPLOADS_DIR):
         return 0
     count = 0

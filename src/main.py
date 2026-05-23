@@ -13,6 +13,7 @@ from components.FileReader import (
     load_tracking_index,
     purge_uploads_directory,
 )
+from components.Search import run_search
 
 st.set_page_config(
     page_title="ForensicAI",
@@ -21,7 +22,6 @@ st.set_page_config(
     initial_sidebar_state="collapsed",
 )
 
-# CSS
 st.markdown("""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600;700&family=IBM+Plex+Sans:wght@300;400;600&display=swap');
@@ -47,7 +47,7 @@ section[data-testid="stSidebar"] { display: none !important; }
     padding: 60px 32px 80px 32px !important;
 }
 
-/* ── title ── */
+/* title */
 .page-title {
     font-family: 'IBM Plex Mono', monospace;
     border-top: 3px solid #000;
@@ -65,7 +65,7 @@ section[data-testid="stSidebar"] { display: none !important; }
     line-height: 1.15; letter-spacing: -.5px; color: #000;
 }
 
-/* ── search input ── */
+/* search input */
 .stTextInput > label {
     font-family: 'IBM Plex Mono', monospace !important;
     font-size: .58rem !important; font-weight: 700 !important;
@@ -91,10 +91,10 @@ section[data-testid="stSidebar"] { display: none !important; }
     color: #bbb !important; font-size: .88rem !important;
 }
 
-/* ── divider ── */
+/* divider */
 .rule { border: none; border-top: 1px solid #000; margin: 34px 0; }
 
-/* ── section label ── */
+/* section label */
 .section-label {
     font-family: 'IBM Plex Mono', monospace;
     font-size: .58rem; font-weight: 700;
@@ -102,7 +102,7 @@ section[data-testid="stSidebar"] { display: none !important; }
     color: #000; margin-bottom: 14px; display: block;
 }
 
-/* ── card buttons ── */
+/* card buttons */
 .stButton > button {
     background:    #ffffff !important;
     color:         #000000 !important;
@@ -136,7 +136,7 @@ section[data-testid="stSidebar"] { display: none !important; }
 [data-testid="stHorizontalBlock"]       { gap: 0 !important; }
 [data-testid="stHorizontalBlock"] > div { padding: 0 !important; min-width: 0 !important; }
 
-/* ── source indicator ── */
+/* source indicator */
 .source-indicator {
     font-family: 'IBM Plex Mono', monospace;
     font-size: .7rem; color: #555;
@@ -144,7 +144,7 @@ section[data-testid="stSidebar"] { display: none !important; }
     padding-left: 10px; margin-top: 10px; line-height: 1.8;
 }
 
-/* ── ingested file table ── */
+/* file table */
 .idx-table {
     width: 100%; border-collapse: collapse;
     font-family: 'IBM Plex Mono', monospace;
@@ -170,7 +170,7 @@ section[data-testid="stSidebar"] { display: none !important; }
     text-transform: uppercase; letter-spacing: 1px;
 }
 
-/* ── dialog ── */
+/* dialog */
 [data-testid="stDialog"] > div,
 div[role="dialog"] {
     background:    #ffffff !important;
@@ -238,7 +238,7 @@ div[role="dialog"] {
     background: #fff !important; color: #000 !important;
 }
 
-/* ── primary button (purge only) — scoped red ── */
+/* primary button (purge only) — scoped red */
 button[kind="primary"],
 .stButton > button[kind="primary"] {
     background:    #ffffff !important;
@@ -251,7 +251,7 @@ button[kind="primary"],
     color:      #ffffff !important;
 }
 
-/* coming-soon */
+/* coming soon */
 .cs-icon { font-size:2.2rem; display:block; text-align:center; margin-bottom:14px; }
 .cs-body { font-family:'IBM Plex Mono',monospace; font-size:.78rem; color:#555; text-align:center; line-height:1.8; }
 .fmt-row { display:flex; flex-wrap:wrap; justify-content:center; gap:8px; margin-top:16px; }
@@ -266,20 +266,17 @@ button[kind="primary"],
 </style>
 """, unsafe_allow_html=True)
 
-
 _defaults = {
     "open_dialog":    None,
     "source_label":   None,
-    "ingested_ids":   [],       # list of file IDs
-    "ingest_results": [],       # last batch uploaded
+    "ingested_ids":   [],       
+    "ingest_results": [],       
 }
 for k, v in _defaults.items():
     if k not in st.session_state:
         st.session_state[k] = v
 
-
-# uploaded
-def listUploadedFiles(entries: list[dict]) -> None:
+def _render_ingest_table(entries: list[dict]) -> None:
     if not entries:
         return
     rows = "".join(
@@ -299,7 +296,6 @@ def listUploadedFiles(entries: list[dict]) -> None:
     )
 
 
-# dialog
 @st.dialog("Upload Files", width="large")
 def dialog_upload():
     st.markdown('<div class="dlg-eyebrow">Evidence Source</div>', unsafe_allow_html=True)
@@ -436,7 +432,7 @@ def dialog_device():
             st.session_state["source_label"]   = (
                 f"✓  {len(results)} file(s) ingested from {chosen_label}"
             )
-            listUploadedFiles(results)
+            _render_ingest_table(results)
             st.rerun()
         else:
             st.markdown(
@@ -485,7 +481,6 @@ def dialog_confirm_purge():
             st.rerun()
 
 
-# page
 st.markdown("""
 <div class="page-title">
     <div class="eyebrow">Digital Forensics — AI Keyword Search</div>
@@ -497,7 +492,31 @@ st.text_input(
     "Search Query",
     placeholder="e.g.  money laundering  /  destroy evidence  /  offshore account",
     key="search_query",
+    on_change=lambda: st.session_state.update({"trigger_search": True}),
 )
+
+if st.session_state.get("trigger_search") and st.session_state.get("search_query", "").strip():
+    st.session_state["trigger_search"] = False
+    query = st.session_state["search_query"]
+
+    with st.spinner("Preparing evidence and tokenizing..."):
+        result = run_search(query)
+
+    st.session_state["search_result"] = result
+
+if st.session_state.get("search_result"):
+    r = st.session_state["search_result"]
+
+    if r["error"]:
+        st.markdown(
+            f'<div class="dlg-status-err">⚠ {r["error"]}</div>',
+            unsafe_allow_html=True,
+        )
+    else:
+        st.markdown(
+            f'<div class="source-indicator">'            f'Query: <strong>"{r["query"]}"</strong> &nbsp;·&nbsp; '            f'Tokens: <strong>{r["query_tokens"]}</strong> &nbsp;·&nbsp; '            f'Files prepared: <strong>{r["file_count"]}</strong>'            f'</div>',
+            unsafe_allow_html=True,
+        )
 
 st.markdown('<hr class="rule">', unsafe_allow_html=True)
 st.markdown('<span class="section-label">Evidence Source</span>', unsafe_allow_html=True)
@@ -508,7 +527,7 @@ col_l, col_r = st.columns(2)
 with col_l:
     st.markdown('<div class="cell-tl">', unsafe_allow_html=True)
     if st.button(
-        "📂  **Upload Files**\n\n.txt  ·  .md  ·  .pdf  ·  .docx",
+        "📂  **Upload Files**\n\n.txt  ·  .md  ·  .pdf  ·  .doc",
         key="btn_upload", use_container_width=True,
     ):
         st.session_state["open_dialog"] = "upload"
@@ -543,7 +562,8 @@ with col_r:
         st.rerun()
     st.markdown('</div>', unsafe_allow_html=True)
 
-st.markdown('</div>', unsafe_allow_html=True)  # close
+st.markdown('</div>', unsafe_allow_html=True)  # close grid-wrap
+
 if st.session_state["source_label"]:
     st.markdown(
         f'<div class="source-indicator">{st.session_state["source_label"]}</div>',
@@ -551,7 +571,7 @@ if st.session_state["source_label"]:
     )
 
 if st.session_state["ingest_results"]:
-    listUploadedFiles(st.session_state["ingest_results"])
+    _render_ingest_table(st.session_state["ingest_results"])
 
 full_index = load_tracking_index()
 if full_index:
@@ -570,7 +590,7 @@ if full_index:
     )
 
     with st.expander("View full index"):
-        listUploadedFiles(full_index)
+        _render_ingest_table(full_index)
 
     btn_col1, btn_col2 = st.columns(2)
 
@@ -586,7 +606,6 @@ if full_index:
             st.session_state["open_dialog"] = "confirm_purge"
             st.rerun()
 
-# dialog
 _d = st.session_state.get("open_dialog")
 if _d:
     st.session_state["open_dialog"] = None
