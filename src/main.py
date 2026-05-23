@@ -269,8 +269,8 @@ button[kind="primary"],
 _defaults = {
     "open_dialog":    None,
     "source_label":   None,
-    "ingested_ids":   [],       
-    "ingest_results": [],       
+    "ingested_ids":   [],
+    "ingest_results": [],
 }
 for k, v in _defaults.items():
     if k not in st.session_state:
@@ -504,6 +504,7 @@ if st.session_state.get("trigger_search") and st.session_state.get("search_query
 
     st.session_state["search_result"] = result
 
+#result of search
 if st.session_state.get("search_result"):
     r = st.session_state["search_result"]
 
@@ -513,10 +514,36 @@ if st.session_state.get("search_result"):
             unsafe_allow_html=True,
         )
     else:
-        st.markdown(
-            f'<div class="source-indicator">'            f'Query: <strong>"{r["query"]}"</strong> &nbsp;·&nbsp; '            f'Tokens: <strong>{r["query_tokens"]}</strong> &nbsp;·&nbsp; '            f'Files prepared: <strong>{r["file_count"]}</strong>'            f'</div>',
-            unsafe_allow_html=True,
-        )
+        if r["match_count"] == 0:
+            st.markdown(
+                '<div class="dlg-status-err">No matches found for this query.</div>',
+                unsafe_allow_html=True,
+            )
+        else:
+            rows = "".join(
+                f"<tr>"
+                f"<td>{m['original_name']}</td>"
+                f"<td><span class='type-badge'>{m['file_type']}</span></td>"
+                f"<td>{', '.join(m['matched_tokens'].keys())}</td>"
+                f"<td>{m['match_count']}</td>"
+                f"<td>{m['score']:.4f}</td>"
+                f"</tr>"
+                for m in r["evidence"]
+            )
+
+            st.markdown(
+                f"<table class='idx-table'>"
+                f"<thead><tr>"
+                f"<th>File</th>"
+                f"<th>Type</th>"
+                f"<th>Keywords Found</th>"
+                f"<th>Hits</th>"
+                f"<th>Score</th>"
+                f"</tr></thead>"
+                f"<tbody>{rows}</tbody></table>",
+                unsafe_allow_html=True,
+            )
+
 
 st.markdown('<hr class="rule">', unsafe_allow_html=True)
 st.markdown('<span class="section-label">Evidence Source</span>', unsafe_allow_html=True)
