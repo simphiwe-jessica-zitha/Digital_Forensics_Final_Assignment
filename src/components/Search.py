@@ -5,10 +5,14 @@ import json
 import nltk
 from nltk.tokenize import word_tokenize
 from nltk.corpus   import stopwords
+from nltk.corpus   import wordnet
+
 
 for _pkg, _path in [
     ("punkt_tab", "tokenizers/punkt_tab"),
     ("stopwords", "corpora/stopwords"),
+    ("wordnet", "corpora/wordnet"),
+    ("omw-1.4", "corpora/omw-1.4"),
 ]:
     try:
         nltk.data.find(_path)
@@ -97,9 +101,57 @@ def prepare_evidence() -> list:
 
     return prepared
 
+#finding synonyms for query
+def expand_query(query: str) -> list[str]:
+    original_tokens = tokenize_query(query)
+    expanded = set(original_tokens)
+
+    for token in original_tokens:
+        for syn in wordnet.synsets(token):
+            for lemma in syn.lemmas():
+                word = lemma.name().lower().replace("_", " ")
+                expanded.add(word)
+
+    return list(expanded)
+
 
 def tokenize_query(query: str) -> list:
     return _tokenize(query)
+
+
+def match_evidecne (query_tokens:list,evidence:list)->list:
+    results=[]
+    query_set=set(query_tokens)
+
+    for doc in evidence:
+        doc_tokens=doc["tokens"]
+        token_poisition:dict[str,list[int]]={}
+
+        for i,token in enumerate(doc_tokens):
+            if token in query_set:
+                token_poisition.setdefault(token,[]).append(i)
+
+        if not token_poisition:
+            continue
+
+        hits=sorted(pos for positions in token_poisition.values() for pos in positions)
+
+        results.append({
+            "id": doc["id"],
+            "original_name": doc["original_name"],
+            "file_type": doc["file_type"],
+            "source": doc["source"],
+            "matched_tokens": token_poisition,
+            "match_count": len(hits),
+            "hit_positions": hits,
+            "token_count": doc["token_count"],
+            "score": len(hits) / (doc["token_count"] or 1)
+
+        })
+
+    results.sort(key=lambda x: x["score"], reverse=True)
+    return results
+
 
 
 def run_search(query: str) -> dict:
@@ -115,7 +167,7 @@ def run_search(query: str) -> dict:
         }
 
     # 2. tokenize the query
-    query_tokens = tokenize_query(query)
+    query_tokens = expand_query(query)
 
     # 3. load + tokenize all evidence files
     try:
@@ -128,15 +180,21 @@ def run_search(query: str) -> dict:
             "file_count":   0,
             "error":        f"Failed to load evidence: {e}",
         }
-    
+
     print("Evidence Json:")
     print(json.dumps(evidence, indent=4))
 
-    # 4. return everything — matching logic added in next stage
+    #$4. Match the query token to the token in the evidence
+
+    matches=match_evidecne(query_tokens,evidence)
+    matched_files=[match["original_name"] for match in matches]
+    print("matches:", json.dumps(matches, indent=4))
     return {
         "query":        query,
         "query_tokens": query_tokens,
-        "evidence":     evidence,
-        "file_count":   len(evidence),
+        "evidence":     matches,
+        "matched_files": matched_files,
+        "match_count":  len(matches),
+        "file_count":   len(matches),
         "error":        None,
     }
