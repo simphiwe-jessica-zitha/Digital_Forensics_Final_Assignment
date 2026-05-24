@@ -14,6 +14,7 @@ from components.FileReader import (
     EmptyUploads,
 )
 from components.Search import run_search
+from components.reporter import generate_txt_report, generate_csv_report, report_filename
 
 st.set_page_config(
     page_title="ForensicAI",
@@ -504,9 +505,9 @@ if st.session_state.get("trigger_search") and st.session_state.get("search_query
 
     st.session_state["search_result"] = result
 
-#result of search
 if st.session_state.get("search_result"):
-    r = st.session_state["search_result"]
+    r     = st.session_state["search_result"]
+    query = st.session_state.get("search_query", "")
 
     if r["error"]:
         st.markdown(
@@ -520,6 +521,7 @@ if st.session_state.get("search_result"):
                 unsafe_allow_html=True,
             )
         else:
+            # ── Results table (unchanged from original) ───────────────────
             rows = "".join(
                 f"<tr>"
                 f"<td>{m['original_name']}</td>"
@@ -543,6 +545,40 @@ if st.session_state.get("search_result"):
                 f"<tbody>{rows}</tbody></table>",
                 unsafe_allow_html=True,
             )
+
+            # ── Download report buttons (NEW) ─────────────────────────────
+            st.markdown("<br>", unsafe_allow_html=True)
+            st.markdown(
+                '<span class="section-label">Export Report</span>',
+                unsafe_allow_html=True,
+            )
+
+            txt_data = generate_txt_report(query, r)
+            csv_data = generate_csv_report(query, r)
+
+            dl_col1, dl_col2 = st.columns(2)
+
+            with dl_col1:
+                st.download_button(
+                    label="⬇  Download .txt Report",
+                    data=txt_data,
+                    file_name=report_filename(query, "txt"),
+                    mime="text/plain",
+                    use_container_width=True,
+                    key="dl_txt",
+                    type="tertiary",
+                )
+
+            with dl_col2:
+                st.download_button(
+                    label="⬇  Download .csv Report",
+                    data=csv_data,
+                    file_name=report_filename(query, "csv"),
+                    mime="text/csv",
+                    use_container_width=True,
+                    key="dl_csv",
+                    type="tertiary",
+                )
 
 
 st.markdown('<hr class="rule">', unsafe_allow_html=True)
