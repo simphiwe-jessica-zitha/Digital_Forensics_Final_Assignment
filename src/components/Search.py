@@ -101,16 +101,24 @@ def prepare_evidence() -> list:
 
     return prepared
 
-#finding synonyms for query
-def expand_query(query: str) -> list[str]:
+
+def expand_query(query: str,evidence:list) -> list[str]:
     original_tokens = tokenize_query(query)
     expanded = set(original_tokens)
 
+    #synonyms
     for token in original_tokens:
         for syn in wordnet.synsets(token):
             for lemma in syn.lemmas():
                 word = lemma.name().lower().replace("_", " ")
                 expanded.add(word)
+
+    #partial matching
+    for token in original_tokens:
+        for doc in evidence:
+            for doc_token in doc["tokens"]:
+                if (doc_token.startswith(token) or doc_token.endswith(token)) and (len(token)>=4):
+                    expanded.add(doc_token)
 
     return list(expanded)
 
@@ -166,8 +174,8 @@ def run_search(query: str) -> dict:
             "error":        "Query is empty.",
         }
 
-    # 2. tokenize the query
-    query_tokens = expand_query(query)
+    #2. tokenize the query
+    original_tokens = tokenize_query(query)
 
     # 3. load + tokenize all evidence files
     try:
@@ -175,7 +183,8 @@ def run_search(query: str) -> dict:
     except Exception as e:
         return {
             "query":        query,
-            "query_tokens": query_tokens,
+            "original_tokens": original_tokens,
+            "expanded_tokens": [],
             "evidence":     [],
             "file_count":   0,
             "error":        f"Failed to load evidence: {e}",
@@ -184,17 +193,20 @@ def run_search(query: str) -> dict:
     print("Evidence Json:")
     print(json.dumps(evidence, indent=4))
 
-    #$4. Match the query token to the token in the evidence
+    expanded_tokens = expand_query(query, evidence)
 
-    matches=match_evidecne(query_tokens,evidence)
+    #$3. Match the query token to the token in the evidence
+
+    matches=match_evidecne(expanded_tokens,evidence)
     matched_files=[match["original_name"] for match in matches]
     print("matches:", json.dumps(matches, indent=4))
     return {
         "query":        query,
-        "query_tokens": query_tokens,
+        "original_tokens": original_tokens,
+        "expanded_tokens": expanded_tokens,
         "evidence":     matches,
         "matched_files": matched_files,
         "match_count":  len(matches),
-        "file_count":   len(matches),
+        "file_count":   len(evidence),
         "error":        None,
     }
