@@ -127,6 +127,8 @@ section[data-testid="stSidebar"] { display: none !important; }
 .stButton > button:hover p,
 .stButton > button:focus p { color: #ffffff !important; }
 
+.s
+
 /* grid */
 .grid-wrap { border: 1.5px solid #000; margin-bottom: 16px; }
 .cell-tl   { border-right: 1px solid #000; border-bottom: 1px solid #000; }
@@ -441,23 +443,24 @@ def dialog_device():
                 unsafe_allow_html=True,
             )
 
+#@st.dialog("Disk Image", width="large")
+#def dialog_disk():
+#    st.markdown('<div class="dlg-eyebrow">Evidence Source</div>', unsafe_allow_html=True)
+#    st.markdown('<div class="dlg-title">Disk Image</div>', unsafe_allow_html=True)
+#    st.markdown("""
+#        <span class="cs-icon">🖴</span>
+#        <div class="cs-body">Load and parse forensic disk images<br>for full file-system keyword analysis.</div>
+#        <div class="fmt-row">
+#           <span class="fmt-tag">.dd</span>
+#           <span class="fmt-tag">.E01</span>
+#           <span class="fmt-tag">.img</span>
+#           <span class="fmt-tag">.raw</span>
+#           <span class="fmt-tag">.iso</span>
+#       </div>
+#       <div class="cs-soon">— Available in the next release —</div>
+#   """, unsafe_allow_html=True)
 
-@st.dialog("Disk Image", width="large")
-def dialog_disk():
-    st.markdown('<div class="dlg-eyebrow">Evidence Source</div>', unsafe_allow_html=True)
-    st.markdown('<div class="dlg-title">Disk Image</div>', unsafe_allow_html=True)
-    st.markdown("""
-        <span class="cs-icon">🖴</span>
-        <div class="cs-body">Load and parse forensic disk images<br>for full file-system keyword analysis.</div>
-        <div class="fmt-row">
-            <span class="fmt-tag">.dd</span>
-            <span class="fmt-tag">.E01</span>
-            <span class="fmt-tag">.img</span>
-            <span class="fmt-tag">.raw</span>
-            <span class="fmt-tag">.iso</span>
-        </div>
-        <div class="cs-soon">— Available in the next release —</div>
-    """, unsafe_allow_html=True)
+
 
 
 @st.dialog("Empty Uploads Directory", width="small")
@@ -546,7 +549,6 @@ if st.session_state.get("search_result"):
                 unsafe_allow_html=True,
             )
 
-            # ── Download report buttons (NEW) ─────────────────────────────
             st.markdown("<br>", unsafe_allow_html=True)
             st.markdown(
                 '<span class="section-label">Export Report</span>',
@@ -566,7 +568,7 @@ if st.session_state.get("search_result"):
                     mime="text/plain",
                     use_container_width=True,
                     key="dl_txt",
-                    type="tertiary",
+                    type="tertiary"
                 )
 
             with dl_col2:
@@ -577,7 +579,7 @@ if st.session_state.get("search_result"):
                     mime="text/csv",
                     use_container_width=True,
                     key="dl_csv",
-                    type="tertiary",
+                    type="tertiary"
                 )
 
 
@@ -615,7 +617,7 @@ with col_r:
         st.session_state["open_dialog"] = "sample"
         st.rerun()
     st.markdown('</div>', unsafe_allow_html=True)
-
+'''
     st.markdown('<div class="cell-br">', unsafe_allow_html=True)
     if st.button(
         "🖴  **Disk Image**\n\n.dd  ·  .E01  ·  .img  ·  .raw",
@@ -624,6 +626,7 @@ with col_r:
         st.session_state["open_dialog"] = "disk"
         st.rerun()
     st.markdown('</div>', unsafe_allow_html=True)
+'''
 
 st.markdown('</div>', unsafe_allow_html=True)  # close grid-wrap
 
@@ -675,5 +678,5 @@ if _d:
     if   _d == "upload":        dialog_upload()
     elif _d == "sample":        dialog_sample()
     elif _d == "device":        dialog_device()
-    elif _d == "disk":          dialog_disk()
+    #elif _d == "disk":          dialog_disk()
     elif _d == "confirm_purge": dialog_confirm_purge()
