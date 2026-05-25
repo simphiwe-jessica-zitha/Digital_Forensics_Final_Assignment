@@ -1,0 +1,39 @@
+--- Email Archive Export | Account: j.mercer@protonmail.com ---
+ 
+FROM: j.mercer@protonmail.com
+TO: finance_ops@securemail.net
+DATE: 2024-01-10 14:32:07
+SUBJECT: Re: Investment Transfer
+ 
+Hi,
+The funds have been transferred as discussed. Please ensure the wire goes through the offshore account in the Cayman Islands before end of week. We need to keep this transaction off the books.
+ 
+Best,
+J. Mercer
+ 
+---
+ 
+FROM: j.mercer@protonmail.com
+TO: derek.v@mail.com
+DATE: 2024-01-11 09:15:43
+SUBJECT: Product Delivery Schedule
+ 
+Derek,
+The shipment is scheduled to arrive Thursday night. Make sure your guys are at the loading bay. No cameras on that side of the building. The merchandise needs to be stored in the back room, not the main floor.
+ 
+Do NOT communicate about this over regular channels again.
+ 
+JM
+ 
+---
+ 
+FROM: j.mercer@protonmail.com
+TO: legal_temp@lawfirm.co
+DATE: 2024-01-12 16:20:11
+SUBJECT: Property Purchase
+ 
+Hi Sarah,
+Just following up on the real estate purchase we discussed. The buyer would like to remain anonymous. Payment will come in multiple smaller installments to keep things discreet. Please advise on how to structure this legally.
+ 
+Thanks,
+James
