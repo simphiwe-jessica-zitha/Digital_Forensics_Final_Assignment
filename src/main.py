@@ -129,12 +129,31 @@ section[data-testid="stSidebar"] { display: none !important; }
 
 .s
 
-/* grid */
-.grid-wrap { border: 1.5px solid #000; margin-bottom: 16px; }
-.cell-tl   { border-right: 1px solid #000; border-bottom: 1px solid #000; }
-.cell-tr   { border-bottom: 1px solid #000; }
-.cell-bl   { border-right: 1px solid #000; }
-.cell-br   { }
+/* grid 
+# .grid-wrap { border: 1.5px solid #000; margin-bottom: 16px; }
+# .cell-tl   { border-right: 1px solid #000; border-bottom: 1px solid #000; }
+# .cell-tr   { border-bottom: 1px solid #000; }
+# .cell-bl   { border-right: 1px solid #000; }
+# .cell-br   { }*/
+            
+.grid-wrap.tight-grid { 
+    border: 1.5px solid #000; 
+    margin-bottom: 16px; 
+    padding: 6px 6px 12px 6px;  
+}
+
+.cell-tl, .cell-tr {
+    border-right: 1px solid #000; 
+    border-bottom: 1px solid #000;
+}
+
+.cell-tr {
+    border-right: none !important;
+}
+
+[data-testid="stHorizontalBlock"] {
+    gap: 6px !important;     
+}
 
 [data-testid="stHorizontalBlock"]       { gap: 0 !important; }
 [data-testid="stHorizontalBlock"] > div { padding: 0 !important; min-width: 0 !important; }
@@ -586,10 +605,11 @@ if st.session_state.get("search_result"):
 st.markdown('<hr class="rule">', unsafe_allow_html=True)
 st.markdown('<span class="section-label">Evidence Source</span>', unsafe_allow_html=True)
 
-st.markdown('<div class="grid-wrap">', unsafe_allow_html=True)
-col_l, col_r = st.columns(2)
+st.markdown('<div class="grid-wrap tight-grid">', unsafe_allow_html=True)
 
-with col_l:
+col1, col2 = st.columns([1, 1], gap="small")  
+
+with col1:
     st.markdown('<div class="cell-tl">', unsafe_allow_html=True)
     if st.button(
         "📂  **Upload Files**\n\n.txt  ·  .md  ·  .pdf  ·  .doc",
@@ -599,16 +619,7 @@ with col_l:
         st.rerun()
     st.markdown('</div>', unsafe_allow_html=True)
 
-    st.markdown('<div class="cell-bl">', unsafe_allow_html=True)
-    if st.button(
-        "💾  **Connected Device**\n\nScan a USB drive or external storage.",
-        key="btn_device", use_container_width=True,
-    ):
-        st.session_state["open_dialog"] = "device"
-        st.rerun()
-    st.markdown('</div>', unsafe_allow_html=True)
-
-with col_r:
+with col2:
     st.markdown('<div class="cell-tr">', unsafe_allow_html=True)
     if st.button(
         "🗂  **Select Sample**\n\nFrom evidence/samples/ on disk.",
@@ -617,18 +628,71 @@ with col_r:
         st.session_state["open_dialog"] = "sample"
         st.rerun()
     st.markdown('</div>', unsafe_allow_html=True)
-'''
-    st.markdown('<div class="cell-br">', unsafe_allow_html=True)
-    if st.button(
-        "🖴  **Disk Image**\n\n.dd  ·  .E01  ·  .img  ·  .raw",
-        key="btn_disk", use_container_width=True,
-    ):
-        st.session_state["open_dialog"] = "disk"
-        st.rerun()
-    st.markdown('</div>', unsafe_allow_html=True)
-'''
 
-st.markdown('</div>', unsafe_allow_html=True)  # close grid-wrap
+st.markdown(
+    '<div style="display: flex; justify-content: center; margin-top: 8px;">', 
+    unsafe_allow_html=True
+)
+
+st.markdown('<div style="width: 48%;">', unsafe_allow_html=True)   
+if st.button(
+    "💾  **Connected Device**\n\nScan a USB drive or external storage.",
+    key="btn_device", use_container_width=True,
+):
+    st.session_state["open_dialog"] = "device"
+    st.rerun()
+st.markdown('</div>', unsafe_allow_html=True)
+
+st.markdown('</div>', unsafe_allow_html=True)   
+
+st.markdown('</div>', unsafe_allow_html=True)  
+
+# st.markdown('<hr class="rule">', unsafe_allow_html=True)
+# st.markdown('<span class="section-label">Evidence Source</span>', unsafe_allow_html=True)
+
+# st.markdown('<div class="grid-wrap">', unsafe_allow_html=True)
+# col_l, col_r = st.columns(2)
+
+# with col_l:
+#     st.markdown('<div class="cell-tl">', unsafe_allow_html=True)
+#     if st.button(
+#         "📂  **Upload Files**\n\n.txt  ·  .md  ·  .pdf  ·  .doc",
+#         key="btn_upload", use_container_width=True,
+#     ):
+#         st.session_state["open_dialog"] = "upload"
+#         st.rerun()
+#     st.markdown('</div>', unsafe_allow_html=True)
+
+#     st.markdown('<div class="cell-bl">', unsafe_allow_html=True)
+#     if st.button(
+#         "💾  **Connected Device**\n\nScan a USB drive or external storage.",
+#         key="btn_device", use_container_width=True,
+#     ):
+#         st.session_state["open_dialog"] = "device"
+#         st.rerun()
+#     st.markdown('</div>', unsafe_allow_html=True)
+
+# with col_r:
+#     st.markdown('<div class="cell-tr">', unsafe_allow_html=True)
+#     if st.button(
+#         "🗂  **Select Sample**\n\nFrom evidence/samples/ on disk.",
+#         key="btn_sample", use_container_width=True,
+#     ):
+#         st.session_state["open_dialog"] = "sample"
+#         st.rerun()
+#     st.markdown('</div>', unsafe_allow_html=True)
+# # '''
+# #     st.markdown('<div class="cell-br">', unsafe_allow_html=True)
+# #     if st.button(
+# #         "🖴  **Disk Image**\n\n.dd  ·  .E01  ·  .img  ·  .raw",
+# #         key="btn_disk", use_container_width=True,
+# #     ):
+# #         st.session_state["open_dialog"] = "disk"
+# #         st.rerun()
+# #     st.markdown('</div>', unsafe_allow_html=True)
+# # '''
+
+# st.markdown('</div>', unsafe_allow_html=True)  # close grid-wrap
 
 if st.session_state["source_label"]:
     st.markdown(
